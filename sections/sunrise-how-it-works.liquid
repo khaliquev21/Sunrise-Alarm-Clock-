@@ -1,0 +1,125 @@
+<section
+  {% if section.settings.anchor_id != blank %}
+    id="{{ section.settings.anchor_id | handleize }}"
+  {% endif %}
+  class="sr-section sr-bg-warm sr-anchor-target"
+  style="--sr-pad-top: {{ section.settings.padding_top }}px; --sr-pad-bottom: {{ section.settings.padding_bottom }}px; --sr-pad-top-mobile: {{ section.settings.padding_top | times: 0.6 | round }}px; --sr-pad-bottom-mobile: {{ section.settings.padding_bottom | times: 0.6 | round }}px;"
+>
+  <div class="page-width">
+    <div class="sr-section-head sr-section-head--center">
+      {%- if section.settings.eyebrow != blank -%}
+        <p class="sr-eyebrow">{{ section.settings.eyebrow | escape }}</p>
+      {%- endif -%}
+      <h2 class="sr-heading">{{ section.settings.heading | escape }}</h2>
+    </div>
+
+    <ol class="sr-grid sr-grid--3 sr-steps list-unstyled" role="list">
+      {%- for block in section.blocks -%}
+        <li class="sr-card sr-step" {{ block.shopify_attributes }}>
+          <span class="sr-step__number" aria-hidden="true">{{ forloop.index }}</span>
+          <h3 class="sr-card-title">
+            <span class="visually-hidden">{{ forloop.index }}.</span>
+            {{ block.settings.title | escape }}
+          </h3>
+          {%- if block.settings.text != blank -%}
+            <p class="sr-small">{{ block.settings.text | escape }}</p>
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+    </ol>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Sunrise how it works",
+  "tag": "div",
+  "class": "section",
+  "max_blocks": 4,
+  "blocks": [
+    {
+      "type": "step",
+      "name": "Step",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Step"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Text"
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow",
+      "default": "How it works"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Light first, then your day"
+    },
+    {
+      "type": "text",
+      "id": "anchor_id",
+      "label": "Section ID",
+      "info": "Lets other links jump here, e.g. #how-it-works.",
+      "default": "how-it-works"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom",
+      "default": 64
+    }
+  ],
+  "presets": [
+    {
+      "name": "Sunrise how it works",
+      "blocks": [
+        {
+          "type": "step",
+          "settings": { "title": "Set your alarm", "text": "Choose your wake-up time on the clock." }
+        },
+        {
+          "type": "step",
+          "settings": {
+            "title": "The light gradually brightens",
+            "text": "The circular amber light warms up slowly, like a sunrise in your room."
+          }
+        },
+        {
+          "type": "step",
+          "settings": {
+            "title": "Start the day in a warm glow",
+            "text": "A calmer, more inviting start than a dark room and a sudden alarm."
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

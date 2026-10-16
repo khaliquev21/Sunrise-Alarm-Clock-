@@ -1,0 +1,251 @@
+{%- liquid
+  assign hero_product = section.settings.product
+  if hero_product == blank
+    assign hero_product = collections.all.products.first
+  endif
+
+  assign button_link = section.settings.button_link
+  if button_link == blank and hero_product
+    assign button_link = hero_product.url
+  endif
+
+  assign price_line = ''
+  if section.settings.show_price_line and hero_product
+    assign from_price = hero_product.price_min | money
+    assign price_line = section.settings.price_text | replace: '[price]', from_price
+    if section.settings.bundle_option_value != blank
+      capture bundle_id
+        render 'sunrise-find-variant', product: hero_product, value: section.settings.bundle_option_value
+      endcapture
+      assign bundle_num = bundle_id | strip | plus: 0
+      for v in hero_product.variants
+        if v.id == bundle_num
+          assign bundle_price = v.price | money
+          assign bundle_text = section.settings.bundle_text | replace: '[bundle_price]', bundle_price
+          assign price_line = price_line | append: bundle_text
+          break
+        endif
+      endfor
+    endif
+  endif
+-%}
+<div class="sr-hero" style="--sr-hero-height: {{ section.settings.height }}px;">
+  <div class="sr-hero__card">
+    <div class="sr-hero__content">
+      {%- if section.settings.eyebrow != blank -%}
+        <p class="sr-eyebrow">{{ section.settings.eyebrow | escape }}</p>
+      {%- endif -%}
+      <h2 class="sr-hero__heading">{{ section.settings.heading | escape | newline_to_br }}</h2>
+      {%- if section.settings.text != blank -%}
+        <p class="sr-hero__text">{{ section.settings.text | escape }}</p>
+      {%- endif -%}
+      <div class="sr-hero__actions">
+        {%- if section.settings.button_label != blank and button_link != blank -%}
+          <a class="sr-btn sr-btn--light" href="{{ button_link }}">
+            {{- section.settings.button_label | escape -}}
+            {% render 'sunrise-icon', icon: 'arrow' %}
+          </a>
+        {%- endif -%}
+        {%- if section.settings.secondary_label != blank and section.settings.secondary_link != blank -%}
+          <a class="sr-link" href="{{ section.settings.secondary_link }}">{{ section.settings.secondary_label | escape }}</a>
+        {%- endif -%}
+      </div>
+      {%- if price_line != blank -%}
+        <p class="sr-hero__price-line">{{ price_line }}</p>
+      {%- endif -%}
+    </div>
+
+    <div class="sr-hero__media">
+      {%- if section.settings.image != blank -%}
+        {%- assign hero_image_style = 'object-position: '
+          | append: section.settings.image.presentation.focal_point
+          | append: ';'
+        -%}
+        {{
+          section.settings.image
+          | image_url: width: 2000
+          | image_tag:
+            loading: 'eager',
+            fetchpriority: 'high',
+            widths: '600, 900, 1200, 1500, 2000',
+            sizes: '(min-width: 990px) 64vw, 100vw',
+            style: hero_image_style
+        }}
+      {%- else -%}
+        <span class="sr-hero__glow" aria-hidden="true"></span>
+      {%- endif -%}
+    </div>
+  </div>
+</div>
+
+{%- if section.blocks.size > 0 -%}
+  <div class="sr-trustbar">
+    <div class="page-width">
+      <ul class="sr-trustbar__list" role="list">
+        {%- for block in section.blocks -%}
+          <li class="sr-trustbar__item" {{ block.shopify_attributes }}>
+            {% render 'sunrise-icon', icon: block.settings.icon %}
+            {%- if block.settings.link != blank -%}
+              <a href="{{ block.settings.link }}">{{ block.settings.text | escape }}</a>
+            {%- else -%}
+              <span>{{ block.settings.text | escape }}</span>
+            {%- endif -%}
+          </li>
+        {%- endfor -%}
+      </ul>
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Sunrise hero",
+  "tag": "section",
+  "class": "section sr-hero-section",
+  "max_blocks": 4,
+  "blocks": [
+    {
+      "type": "trust",
+      "name": "Trust item",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Only add claims that are true for your store."
+        },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "options": [
+            { "value": "lock", "label": "Lock" },
+            { "value": "truck", "label": "Delivery truck" },
+            { "value": "return", "label": "Return arrow" },
+            { "value": "mail", "label": "Mail" },
+            { "value": "shield", "label": "Shield" }
+          ],
+          "default": "lock"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Text",
+          "default": "Secure checkout"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link"
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Lifestyle image",
+      "info": "Shown on the right on desktop and below the text on mobile. Without an image a warm glow is shown."
+    },
+    {
+      "type": "range",
+      "id": "height",
+      "label": "Desktop height",
+      "min": 400,
+      "max": 760,
+      "step": 20,
+      "unit": "px",
+      "default": 560
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow",
+      "default": "Wake up gently"
+    },
+    {
+      "type": "textarea",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Wake Up With the Sunrise"
+    },
+    {
+      "type": "textarea",
+      "id": "text",
+      "label": "Text",
+      "default": "Start your morning with a warm, gradual sunrise glow and a modern alarm clock designed for your bedside."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Button label",
+      "default": "Shop the Sunrise Alarm Clock"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "Button link",
+      "info": "Defaults to the product below."
+    },
+    {
+      "type": "text",
+      "id": "secondary_label",
+      "label": "Secondary link label",
+      "default": "How it works"
+    },
+    {
+      "type": "text",
+      "id": "secondary_link",
+      "label": "Secondary link",
+      "info": "A URL or an anchor such as #how-it-works.",
+      "default": "#how-it-works"
+    },
+    {
+      "type": "header",
+      "content": "Price line"
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product",
+      "info": "Defaults to the first product in your store."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_price_line",
+      "label": "Show price line",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "price_text",
+      "label": "Price text",
+      "info": "[price] is the product's lowest variant price.",
+      "default": "From [price]"
+    },
+    {
+      "type": "text",
+      "id": "bundle_option_value",
+      "label": "Bundle variant option value",
+      "default": "2 Clocks"
+    },
+    {
+      "type": "text",
+      "id": "bundle_text",
+      "label": "Bundle text",
+      "info": "Added when the bundle variant exists. [bundle_price] is that variant's price.",
+      "default": " · 2 for [bundle_price]"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Sunrise hero",
+      "blocks": [
+        {
+          "type": "trust",
+          "settings": { "icon": "lock", "text": "Secure checkout" }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

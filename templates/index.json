@@ -1,75 +1,265 @@
 {
   "sections": {
-    "image_banner": {
-      "type": "image-banner",
+    "hero": {
+      "type": "sunrise-hero",
       "blocks": {
-        "heading": {
-          "type": "heading",
+        "t1": {
+          "type": "trust",
           "settings": {
-            "heading": "Browse our latest products",
-            "heading_size": "h0"
+            "icon": "lock",
+            "text": "Secure checkout",
+            "link": ""
           }
         },
-        "button": {
-          "type": "buttons",
+        "t2": {
+          "type": "trust",
+          "disabled": true,
           "settings": {
-            "button_label_1": "Shop all",
-            "button_link_1": "shopify://collections/all",
-            "button_style_secondary_1": true,
-            "button_label_2": "",
-            "button_link_2": "",
-            "button_style_secondary_2": false
+            "icon": "truck",
+            "text": "Tracked delivery",
+            "link": ""
+          }
+        },
+        "t3": {
+          "type": "trust",
+          "disabled": true,
+          "settings": {
+            "icon": "return",
+            "text": "Easy returns",
+            "link": "/policies/refund-policy"
+          }
+        },
+        "t4": {
+          "type": "trust",
+          "settings": {
+            "icon": "mail",
+            "text": "Email support",
+            "link": "/pages/contact"
           }
         }
       },
       "block_order": [
-        "heading",
-        "button"
+        "t1",
+        "t2",
+        "t3",
+        "t4"
       ],
       "settings": {
-        "image_overlay_opacity": 40,
-        "image_height": "large",
-        "desktop_content_position": "bottom-center",
-        "show_text_box": false,
-        "image_behavior": "none",
-        "desktop_content_alignment": "center",
-        "color_scheme": "scheme-3",
-        "mobile_content_alignment": "center",
-        "stack_images_on_mobile": false,
-        "show_text_below": false
+        "height": 560,
+        "eyebrow": "Wake up gently",
+        "heading": "Wake Up With the Sunrise",
+        "text": "Start your morning with a warm, gradual sunrise glow and a modern alarm clock designed for your bedside.",
+        "button_label": "Shop the Sunrise Alarm Clock",
+        "button_link": "",
+        "secondary_label": "How it works",
+        "secondary_link": "#how-it-works",
+        "show_price_line": true,
+        "price_text": "From [price]",
+        "bundle_option_value": "2 Clocks",
+        "bundle_text": " · 2 for [bundle_price]"
       }
     },
-    "featured_collection": {
-      "type": "featured-collection",
+    "showcase": {
+      "type": "sunrise-featured-product",
+      "blocks": {
+        "f1": {
+          "type": "feature",
+          "settings": {
+            "text": "Gradual sunrise lighting"
+          }
+        },
+        "f2": {
+          "type": "feature",
+          "settings": {
+            "text": "Modern bedside design"
+          }
+        },
+        "f3": {
+          "type": "feature",
+          "settings": {
+            "text": "Clear white digital display"
+          }
+        }
+      },
+      "block_order": [
+        "f1",
+        "f2",
+        "f3"
+      ],
       "settings": {
-        "title": "Featured products",
-        "heading_size": "h2",
-        "description": "",
-        "show_description": false,
-        "description_style": "body",
-        "collection": "all",
-        "products_to_show": 8,
-        "columns_desktop": 4,
-        "color_scheme": "scheme-1",
-        "full_width": false,
-        "show_view_all": true,
-        "view_all_style": "solid",
-        "enable_desktop_slider": false,
-        "swipe_on_mobile": false,
-        "image_ratio": "adapt",
-        "image_shape": "default",
-        "show_secondary_image": true,
-        "show_vendor": false,
-        "show_rating": false,
-        "quick_add": "none",
-        "columns_mobile": "2",
-        "padding_top": 44,
-        "padding_bottom": 36
+        "media_position": "left",
+        "eyebrow": "Meet the clock",
+        "show_rating": true,
+        "description": "<p>A rounded alarm clock with a warm amber sunrise light, a soft grey fabric base and a clean white time display.</p>",
+        "single_option_value": "1 Clock",
+        "save_badge_text": "Save [percent]%",
+        "bundle_option_value": "2 Clocks",
+        "bundle_units": 2,
+        "bundle_text": "Or 2 for [bundle_price] — [per_unit] per clock",
+        "button_label": "Shop now",
+        "padding_top": 96,
+        "padding_bottom": 80
+      }
+    },
+    "how": {
+      "type": "sunrise-how-it-works",
+      "blocks": {
+        "s1": {
+          "type": "step",
+          "settings": {
+            "title": "Set your alarm",
+            "text": "Choose your wake-up time on the clock."
+          }
+        },
+        "s2": {
+          "type": "step",
+          "settings": {
+            "title": "The light gradually brightens",
+            "text": "The circular amber light warms up slowly, like a sunrise in your room."
+          }
+        },
+        "s3": {
+          "type": "step",
+          "settings": {
+            "title": "Start the day in a warm glow",
+            "text": "A calmer, more inviting start than a dark room and a sudden alarm."
+          }
+        }
+      },
+      "block_order": [
+        "s1",
+        "s2",
+        "s3"
+      ],
+      "settings": {
+        "eyebrow": "How it works",
+        "heading": "Light first, then your day",
+        "anchor_id": "how-it-works",
+        "padding_top": 64,
+        "padding_bottom": 64
+      }
+    },
+    "design": {
+      "type": "sunrise-design-features",
+      "blocks": {
+        "d1": {
+          "type": "feature",
+          "settings": {
+            "color": "#D9661C",
+            "swatch_style": "filled",
+            "title": "Round amber light",
+            "text": "A circular sunrise light with a warm, soft glow."
+          }
+        },
+        "d2": {
+          "type": "feature",
+          "settings": {
+            "color": "#8A847C",
+            "swatch_style": "filled",
+            "title": "Soft grey fabric",
+            "text": "A fabric-covered base that feels at home in a bedroom."
+          }
+        },
+        "d3": {
+          "type": "feature",
+          "settings": {
+            "color": "#FFFFFF",
+            "swatch_style": "outline",
+            "title": "Clean white display",
+            "text": "An easy-to-read digital time display."
+          }
+        }
+      },
+      "block_order": [
+        "d1",
+        "d2",
+        "d3"
+      ],
+      "settings": {
+        "media_index": 3,
+        "media_position": "left",
+        "eyebrow": "The design",
+        "heading": "Made to look good on your nightstand",
+        "padding_top": 80,
+        "padding_bottom": 40
+      }
+    },
+    "bundle": {
+      "type": "sunrise-bundle-promo",
+      "settings": {
+        "bundle_option_value": "2 Clocks",
+        "bundle_units": 2,
+        "single_option_value": "1 Clock",
+        "eyebrow": "Better together",
+        "heading": "2 Sunrise Alarm Clocks for [bundle_price]",
+        "text": "[per_unit] per clock — [savings_vs_singles] less than buying two separately. One for you, one to gift.",
+        "text_without_saving": "[per_unit] per clock. One for you, one to gift.",
+        "button_label": "Shop the bundle",
+        "padding_top": 40,
+        "padding_bottom": 80
+      }
+    },
+    "reviews": {
+      "type": "sunrise-reviews",
+      "settings": {
+        "heading": "What customers say",
+        "show_summary": true,
+        "layout": "stacked",
+        "anchor_id": "reviews",
+        "padding_top": 72,
+        "padding_bottom": 72
+      }
+    },
+    "faq": {
+      "type": "sunrise-faq",
+      "blocks": {
+        "q1": {
+          "type": "question",
+          "settings": {
+            "question": "How long does delivery take?",
+            "answer": "<p>Delivery times depend on where you are. See our <a href=\"/policies/shipping-policy\" title=\"Shipping policy\">shipping policy</a> for current timeframes and costs.</p>",
+            "open": false
+          }
+        },
+        "q2": {
+          "type": "question",
+          "settings": {
+            "question": "How does the sunrise light work?",
+            "answer": "<p>Set your wake-up time on the clock and the circular amber light warms up slowly, like a sunrise in your room — a calmer start than a dark room and a sudden alarm.</p>",
+            "open": false
+          }
+        },
+        "q3": {
+          "type": "question",
+          "settings": {
+            "question": "What is your returns policy?",
+            "answer": "<p>Please see our <a href=\"/policies/refund-policy\" title=\"Refund policy\">refund policy</a> for full details on returns and refunds.</p>",
+            "open": false
+          }
+        }
+      },
+      "block_order": [
+        "q1",
+        "q2",
+        "q3"
+      ],
+      "settings": {
+        "heading": "Questions, answered",
+        "link_label": "See all questions",
+        "link": "",
+        "background": "white",
+        "padding_top": 80,
+        "padding_bottom": 80
       }
     }
   },
   "order": [
-    "image_banner",
-    "featured_collection"
+    "hero",
+    "showcase",
+    "how",
+    "design",
+    "bundle",
+    "reviews",
+    "faq"
   ]
 }

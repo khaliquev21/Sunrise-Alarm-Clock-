@@ -1,0 +1,193 @@
+{%- liquid
+  assign design_image = section.settings.image
+  if design_image == blank and section.settings.media_index > 0
+    assign design_product = section.settings.product
+    if design_product == blank
+      assign design_product = collections.all.products.first
+    endif
+    assign media_position = section.settings.media_index | minus: 1
+    assign design_image = design_product.media[media_position].preview_image
+  endif
+-%}
+<section
+  class="sr-section"
+  style="--sr-pad-top: {{ section.settings.padding_top }}px; --sr-pad-bottom: {{ section.settings.padding_bottom }}px; --sr-pad-top-mobile: {{ section.settings.padding_top | times: 0.6 | round }}px; --sr-pad-bottom-mobile: {{ section.settings.padding_bottom | times: 0.6 | round }}px;"
+>
+  <div class="page-width sr-feature{% if section.settings.media_position == 'right' %} sr-feature--media-right{% endif %}{% if design_image == blank %} sr-feature--no-media{% endif %}">
+    {%- if design_image != blank -%}
+      <div class="sr-feature__media">
+        <div class="sr-media">
+          {{
+            design_image
+            | image_url: width: 1200
+            | image_tag: loading: 'lazy', widths: '400, 600, 800, 1000, 1200', sizes: '(min-width: 750px) 50vw, 100vw'
+          }}
+        </div>
+      </div>
+    {%- endif -%}
+
+    <div class="sr-feature__info">
+      {%- if section.settings.eyebrow != blank -%}
+        <p class="sr-eyebrow">{{ section.settings.eyebrow | escape }}</p>
+      {%- endif -%}
+      <h2 class="sr-heading">{{ section.settings.heading | escape }}</h2>
+
+      <ul class="sr-swatch-list" role="list">
+        {%- for block in section.blocks -%}
+          <li {{ block.shopify_attributes }}>
+            <span
+              class="sr-swatch{% if block.settings.swatch_style == 'outline' %} sr-swatch--outline{% endif %}"
+              style="--sr-swatch: {{ block.settings.color }};"
+              aria-hidden="true"
+            ></span>
+            <h3 class="sr-card-title">{{ block.settings.title | escape }}</h3>
+            {%- if block.settings.text != blank -%}
+              <p class="sr-small">{{ block.settings.text | escape }}</p>
+            {%- endif -%}
+          </li>
+        {%- endfor -%}
+      </ul>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Sunrise design features",
+  "tag": "div",
+  "class": "section",
+  "max_blocks": 5,
+  "blocks": [
+    {
+      "type": "feature",
+      "name": "Design feature",
+      "settings": [
+        {
+          "type": "color",
+          "id": "color",
+          "label": "Swatch color",
+          "default": "#D9661C"
+        },
+        {
+          "type": "select",
+          "id": "swatch_style",
+          "label": "Swatch style",
+          "options": [
+            { "value": "filled", "label": "Filled" },
+            { "value": "outline", "label": "Outline (for white)" }
+          ],
+          "default": "filled"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Design feature"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Text"
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "Image"
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product for fallback image",
+      "info": "Defaults to the first product in your store."
+    },
+    {
+      "type": "range",
+      "id": "media_index",
+      "label": "Or use product image number",
+      "info": "Used when no image is chosen. Set to 0 for no image.",
+      "min": 0,
+      "max": 10,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "select",
+      "id": "media_position",
+      "label": "Image position on desktop",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "right", "label": "Right" }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow",
+      "default": "The design"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Made to look good on your nightstand"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom",
+      "default": 40
+    }
+  ],
+  "presets": [
+    {
+      "name": "Sunrise design features",
+      "blocks": [
+        {
+          "type": "feature",
+          "settings": {
+            "color": "#D9661C",
+            "title": "Round amber light",
+            "text": "A circular sunrise light with a warm, soft glow."
+          }
+        },
+        {
+          "type": "feature",
+          "settings": {
+            "color": "#8A847C",
+            "title": "Soft grey fabric",
+            "text": "A fabric-covered base that feels at home in a bedroom."
+          }
+        },
+        {
+          "type": "feature",
+          "settings": {
+            "color": "#FFFFFF",
+            "swatch_style": "outline",
+            "title": "Clean white display",
+            "text": "An easy-to-read digital time display."
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

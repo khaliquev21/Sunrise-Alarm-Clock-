@@ -1,0 +1,49 @@
+{% comment %}
+  Sunrise design layer: self-hosted Manrope + design tokens.
+  Rendered in layout/theme.liquid after base.css so tokens can override Dawn's font variables.
+{% endcomment %}
+{%- if settings.sunrise_use_manrope -%}
+  {{ 'sunrise-manrope-latin.woff2' | asset_url | preload_tag: as: 'font', type: 'font/woff2', crossorigin: 'anonymous' }}
+{%- endif -%}
+{% style %}
+  {%- if settings.sunrise_use_manrope -%}
+    @font-face {
+      font-family: 'Manrope';
+      font-style: normal;
+      font-weight: 200 800;
+      font-display: swap;
+      src: url('{{ 'sunrise-manrope-latin-ext.woff2' | asset_url }}') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Manrope';
+      font-style: normal;
+      font-weight: 200 800;
+      font-display: swap;
+      src: url('{{ 'sunrise-manrope-latin.woff2' | asset_url }}') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    :root {
+      --font-body-family: 'Manrope', {{ settings.type_body_font.fallback_families }};
+      --font-body-style: normal;
+      --font-body-weight: 400;
+      --font-body-weight-bold: 700;
+      --font-heading-family: 'Manrope', {{ settings.type_header_font.fallback_families }};
+      --font-heading-style: normal;
+      --font-heading-weight: 700;
+    }
+  {%- endif -%}
+  :root {
+    --sr-ink: {{ settings.sunrise_ink }};
+    --sr-ink-rgb: {{ settings.sunrise_ink.red }}, {{ settings.sunrise_ink.green }}, {{ settings.sunrise_ink.blue }};
+    --sr-muted: {{ settings.sunrise_muted }};
+    --sr-accent: {{ settings.sunrise_accent }};
+    --sr-accent-bright: {{ settings.sunrise_accent_bright }};
+    --sr-accent-tint: {{ settings.sunrise_accent_bright | color_mix: '#FFFFFF', 8 }};
+    --sr-accent-soft: {{ settings.sunrise_accent_bright | color_mix: '#FFFFFF', 14 }};
+    --sr-warm: {{ settings.sunrise_warm }};
+    --sr-line: {{ settings.sunrise_line }};
+    --sr-radius: {{ settings.sunrise_radius }}px;
+  }
+{% endstyle %}
+{{ 'sunrise.css' | asset_url | stylesheet_tag }}

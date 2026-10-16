@@ -1,0 +1,48 @@
+{% comment %}
+  Star rating from Shopify's standard product review metafields
+  (reviews.rating / reviews.rating_count), which review apps such as
+  Shopify Product Reviews, Judge.me, Okendo, Loox and Yotpo keep in sync.
+  Renders nothing when the product has no reviews, so no rating is ever invented.
+
+  Accepts:
+  - product: {Object} product
+  - link: {String} optional anchor/url for the review count (e.g. '#Reviews')
+  - style: {String} 'inline' (default) | 'summary'
+{% endcomment %}
+{%- liquid
+  assign rating = product.metafields.reviews.rating.value
+  assign rating_count = product.metafields.reviews.rating_count.value | default: 0
+-%}
+{%- if rating != blank and rating_count > 0 -%}
+  {%- liquid
+    assign rating_max = rating.scale_max | default: 5
+    assign rating_percent = rating.rating | times: 100.0 | divided_by: rating_max | round: 1
+    assign rating_display = rating.rating | round: 1
+  -%}
+  <div class="sr-rating sr-rating--{{ style | default: 'inline' }}">
+    <span
+      class="sr-stars"
+      role="img"
+      aria-label="{{ 'accessibility.star_reviews_info' | t: rating_value: rating_display, rating_max: rating_max }}"
+      style="--sr-rating: {{ rating_percent }}%;"
+    ></span>
+    {%- if style == 'summary' -%}
+      <span class="sr-rating__value">{{ rating_display }}</span>
+      <span class="sr-rating__max">/ {{ rating_max }}</span>
+    {%- else -%}
+      <span class="sr-rating__value">{{ rating_display }}</span>
+      <span class="sr-rating__sep" aria-hidden="true">·</span>
+      {%- if link != blank -%}
+        <a class="sr-rating__count" href="{{ link }}">
+          {{- rating_count }}
+          {{ 'accessibility.total_reviews' | t -}}
+        </a>
+      {%- else -%}
+        <span class="sr-rating__count">
+          {{- rating_count }}
+          {{ 'accessibility.total_reviews' | t -}}
+        </span>
+      {%- endif -%}
+    {%- endif -%}
+  </div>
+{%- endif -%}

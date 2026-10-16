@@ -1,0 +1,141 @@
+<section
+  class="sr-section{% if section.settings.background == 'warm' %} sr-bg-warm{% endif %}"
+  style="--sr-pad-top: {{ section.settings.padding_top }}px; --sr-pad-bottom: {{ section.settings.padding_bottom }}px; --sr-pad-top-mobile: {{ section.settings.padding_top | times: 0.6 | round }}px; --sr-pad-bottom-mobile: {{ section.settings.padding_bottom | times: 0.6 | round }}px;"
+>
+  <div class="page-width">
+    {%- if section.settings.heading != blank -%}
+      <div class="sr-section-head sr-section-head--center">
+        <h2 class="sr-heading">{{ section.settings.heading | escape }}</h2>
+      </div>
+    {%- endif -%}
+
+    <div class="sr-faq__list">
+      {%- for block in section.blocks -%}
+        {%- assign answer_text = block.settings.answer | strip_html | strip -%}
+        {%- if block.settings.question != blank and answer_text != blank -%}
+          <details class="sr-accordion" {{ block.shopify_attributes }} {% if block.settings.open %}open{% endif %}>
+            <summary>
+              <span>{{ block.settings.question | escape }}</span>
+              {% render 'sunrise-icon', icon: 'chevron' %}
+            </summary>
+            <div class="sr-accordion__content sr-rte">{{ block.settings.answer }}</div>
+          </details>
+        {%- elsif request.design_mode -%}
+          <div class="sr-editor-note" {{ block.shopify_attributes }}>
+            "{{ block.settings.question | escape }}" is hidden on your store until it has an answer.
+          </div>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+
+    {%- if section.settings.link_label != blank and section.settings.link != blank -%}
+      <p class="sr-faq__more">
+        <a class="sr-link" href="{{ section.settings.link }}">{{ section.settings.link_label | escape }}</a>
+      </p>
+    {%- endif -%}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Sunrise FAQ",
+  "tag": "div",
+  "class": "section",
+  "max_blocks": 12,
+  "blocks": [
+    {
+      "type": "question",
+      "name": "Question",
+      "settings": [
+        {
+          "type": "text",
+          "id": "question",
+          "label": "Question",
+          "default": "Question"
+        },
+        {
+          "type": "richtext",
+          "id": "answer",
+          "label": "Answer",
+          "info": "Questions without an answer are hidden on your store."
+        },
+        {
+          "type": "checkbox",
+          "id": "open",
+          "label": "Open by default",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Frequently asked questions"
+    },
+    {
+      "type": "text",
+      "id": "link_label",
+      "label": "Link label",
+      "default": "See all questions"
+    },
+    {
+      "type": "url",
+      "id": "link",
+      "label": "Link",
+      "info": "The link shows only when a URL is set."
+    },
+    {
+      "type": "select",
+      "id": "background",
+      "label": "Background",
+      "options": [
+        { "value": "white", "label": "White" },
+        { "value": "warm", "label": "Warm" }
+      ],
+      "default": "white"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom",
+      "default": 80
+    }
+  ],
+  "presets": [
+    {
+      "name": "Sunrise FAQ",
+      "blocks": [
+        {
+          "type": "question",
+          "settings": { "question": "How long does delivery take?" }
+        },
+        {
+          "type": "question",
+          "settings": { "question": "How does the sunrise light work?" }
+        },
+        {
+          "type": "question",
+          "settings": { "question": "What is your returns policy?" }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

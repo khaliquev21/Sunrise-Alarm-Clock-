@@ -528,5 +528,25 @@
       "send_on": "YYYY-MM-DD",
       "send_on_label": "Send on (optional)"
     }
+  },
+  "sunrise": {
+    "home": "Home",
+    "breadcrumb": "Breadcrumb",
+    "choose_bundle": "Choose your bundle",
+    "adding": "Adding…",
+    "added": "Added to cart",
+    "gallery_label": "Product images",
+    "show_media": "Show media {{ index }} of {{ count }}",
+    "media_count": "{{ index }} / {{ count }}",
+    "payment_methods": "Accepted payment methods",
+    "order_placed": "Order placed",
+    "today": "Today",
+    "dispatched": "Dispatched",
+    "delivered": "Delivered",
+    "delivery_timeline": "Delivery timeline",
+    "options": "Options",
+    "based_on_reviews": "Based on {{ count }} reviews",
+    "average_from_reviews": "average from {{ count }} reviews",
+    "out_of": "out of {{ max }}"
   }
 }

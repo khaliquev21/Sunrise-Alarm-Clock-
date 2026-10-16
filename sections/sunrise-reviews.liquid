@@ -1,0 +1,146 @@
+{% comment %}
+  Customer reviews. Genuine reviews come only from a review app:
+  - the summary uses Shopify's standard reviews.rating / reviews.rating_count metafields
+  - review lists/carousels come from the app's own theme app block added to this section
+  The section renders nothing on the storefront when neither is available.
+{% endcomment %}
+{%- liquid
+  assign review_product = section.settings.product
+  if review_product == blank
+    assign review_product = product
+  endif
+  if review_product == blank
+    assign review_product = collections.all.products.first
+  endif
+
+  assign rating = review_product.metafields.reviews.rating.value
+  assign rating_count = review_product.metafields.reviews.rating_count.value | default: 0
+  assign has_rating = false
+  if rating != blank and rating_count > 0 and section.settings.show_summary
+    assign has_rating = true
+  endif
+  assign app_blocks = section.blocks | where: 'type', '@app'
+  assign has_apps = false
+  if app_blocks.size > 0
+    assign has_apps = true
+  endif
+-%}
+
+{%- if has_rating or has_apps or request.design_mode -%}
+  <section
+    id="{{ section.settings.anchor_id | default: 'Reviews' | handleize }}"
+    class="sr-section sr-bg-warm sr-reviews"
+    style="--sr-pad-top: {{ section.settings.padding_top }}px; --sr-pad-bottom: {{ section.settings.padding_bottom }}px; --sr-pad-top-mobile: {{ section.settings.padding_top | times: 0.6 | round }}px; --sr-pad-bottom-mobile: {{ section.settings.padding_bottom | times: 0.6 | round }}px;"
+  >
+    <div class="page-width">
+      <div class="sr-section-head sr-section-head--split">
+        <h2 class="sr-heading">{{ section.settings.heading | escape }}</h2>
+        {%- if has_rating and section.settings.layout == 'stacked' -%}
+          <div class="sr-reviews__summary-inline">
+            {%- render 'sunrise-rating', product: review_product, style: 'inline' -%}
+          </div>
+        {%- endif -%}
+      </div>
+
+      <div class="sr-reviews__layout{% if has_rating and section.settings.layout == 'split' %} sr-reviews__layout--split{% endif %}">
+        {%- if has_rating and section.settings.layout == 'split' -%}
+          <div class="sr-card sr-reviews__summary-card">
+            {%- render 'sunrise-rating', product: review_product, style: 'summary' -%}
+            <p class="sr-small sr-reviews__based-on">{{ 'sunrise.based_on_reviews' | t: count: rating_count }}</p>
+          </div>
+        {%- endif -%}
+
+        <div class="sr-reviews__apps">
+          {%- for block in app_blocks -%}
+            {% render block %}
+          {%- endfor -%}
+          {%- if request.design_mode and has_apps == false -%}
+            <p class="sr-editor-note">
+              Add your review app's block to this section (Add block → Apps) to show genuine customer reviews. If no
+              review app is installed and the product has no ratings, this section is hidden on your store.
+            </p>
+          {%- endif -%}
+        </div>
+      </div>
+    </div>
+  </section>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Sunrise reviews",
+  "tag": "div",
+  "class": "section",
+  "blocks": [
+    {
+      "type": "@app"
+    }
+  ],
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Shows genuine reviews only: the rating summary comes from your review app's product ratings, and review lists come from the app's block."
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Customer reviews"
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product",
+      "info": "Leave blank on product pages. On other pages the first product in your store is used."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_summary",
+      "label": "Show rating summary",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout",
+      "options": [
+        { "value": "split", "label": "Summary card beside reviews" },
+        { "value": "stacked", "label": "Summary beside heading" }
+      ],
+      "default": "split"
+    },
+    {
+      "type": "text",
+      "id": "anchor_id",
+      "label": "Section ID",
+      "info": "Used by the rating link on the product page.",
+      "default": "Reviews"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top",
+      "default": 80
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom",
+      "default": 80
+    }
+  ],
+  "presets": [
+    {
+      "name": "Sunrise reviews"
+    }
+  ]
+}
+{% endschema %}

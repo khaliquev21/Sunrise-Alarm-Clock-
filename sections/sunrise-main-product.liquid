@@ -1,0 +1,981 @@
+{% comment %}
+  Sunrise product page: gallery + purchase panel with a bundle selector.
+
+  Bundle offers come from "Bundle offer" blocks. Each block points at a real
+  purchasable variant (matched by option value on this product, or the default
+  variant of a separate bundle product such as one built with the Shopify
+  Bundles app) plus a cart quantity. Every price, compare-at price and saving
+  shown is computed from that variant's Shopify price data; nothing is hardcoded.
+{% endcomment %}
+{{ 'sunrise-product.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'product-form.js' | asset_url }}" defer="defer"></script>
+<script src="{{ 'sunrise-product.js' | asset_url }}" defer="defer"></script>
+
+{%- liquid
+  assign product_form_id = 'product-form-' | append: section.id
+  assign current_variant = product.selected_or_first_available_variant
+  assign url_variant_id = 0
+  if product.selected_variant
+    assign url_variant_id = product.selected_variant.id
+  endif
+
+  assign bundle_heading = section.settings.bundle_heading
+  if bundle_heading == blank
+    assign bundle_heading = 'sunrise.choose_bundle' | t
+  endif
+  assign unit_singular = section.settings.unit_singular | default: 'item'
+  assign unit_plural = section.settings.unit_plural | default: 'items'
+
+  # ---------- Pass 1: resolve each bundle block to a variant ----------
+  assign offer_ids = ''
+  assign offer_index = 0
+  assign valid_offer_count = 0
+  assign first_valid = -1
+  assign default_offer = -1
+  assign url_offer = -1
+  assign single_unit_price = 0
+  assign unresolved_titles = ''
+
+  for block in section.blocks
+    if block.type != 'bundle'
+      continue
+    endif
+
+    assign resolved_id = ''
+    if block.settings.bundle_product != blank
+      assign resolved_id = block.settings.bundle_product.selected_or_first_available_variant.id | append: ''
+    else
+      capture resolved_id
+        render 'sunrise-find-variant', product: product, value: block.settings.option_value
+      endcapture
+      assign resolved_id = resolved_id | strip
+    endif
+
+    if resolved_id == blank
+      assign offer_ids = offer_ids | append: 'x,'
+      assign unresolved_titles = unresolved_titles | append: block.settings.title | append: ' ("' | append: block.settings.option_value | append: '"), '
+    else
+      assign offer_ids = offer_ids | append: resolved_id | append: ','
+      assign valid_offer_count = valid_offer_count | plus: 1
+      if first_valid == -1
+        assign first_valid = offer_index
+      endif
+      if block.settings.default_selected and default_offer == -1
+        assign default_offer = offer_index
+      endif
+      assign resolved_num = resolved_id | plus: 0
+      if resolved_num == url_variant_id and url_offer == -1 and block.settings.bundle_product == blank
+        assign url_offer = offer_index
+      endif
+
+      if single_unit_price == 0 and block.settings.units == 1
+        if block.settings.bundle_product != blank
+          assign single_unit_price = block.settings.bundle_product.selected_or_first_available_variant.price | times: block.settings.quantity
+        else
+          for v in product.variants
+            if v.id == resolved_num
+              assign single_unit_price = v.price | times: block.settings.quantity
+              break
+            endif
+          endfor
+        endif
+      endif
+    endif
+    assign offer_index = offer_index | plus: 1
+  endfor
+
+  assign offer_id_list = offer_ids | split: ','
+  assign selected_offer = first_valid
+  if default_offer != -1
+    assign selected_offer = default_offer
+  endif
+  if url_offer != -1
+    assign selected_offer = url_offer
+  endif
+-%}
+
+{%- comment -%} ---------- Pass 2: build bundle cards + sticky options ---------- {%- endcomment -%}
+{%- liquid
+  assign cards_html = ''
+  assign sticky_html = ''
+  assign sel_quantity = 1
+  assign sel_price = current_variant.price
+  assign sel_compare = 0
+  if current_variant.compare_at_price > current_variant.price
+    assign sel_compare = current_variant.compare_at_price
+  endif
+  assign sel_available = current_variant.available
+  assign sel_badge = ''
+  assign sel_summary = ''
+  assign sel_sticky_note = ''
+  assign offer_index = 0
+-%}
+{%- for block in section.blocks -%}
+  {%- if block.type != 'bundle' -%}
+    {%- continue -%}
+  {%- endif -%}
+  {%- liquid
+    assign this_index = offer_index
+    assign offer_index = offer_index | plus: 1
+    assign resolved_id = offer_id_list[this_index]
+    if resolved_id == 'x' or resolved_id == blank
+      continue
+    endif
+    assign resolved_num = resolved_id | plus: 0
+
+    assign offer_variant = nil
+    if block.settings.bundle_product != blank
+      assign offer_variant = block.settings.bundle_product.selected_or_first_available_variant
+    else
+      for v in product.variants
+        if v.id == resolved_num
+          assign offer_variant = v
+          break
+        endif
+      endfor
+    endif
+
+    assign qty = block.settings.quantity
+    assign units = block.settings.units
+    assign offer_price = offer_variant.price | times: qty
+    assign offer_compare = 0
+    if offer_variant.compare_at_price > offer_variant.price
+      assign offer_compare = offer_variant.compare_at_price | times: qty
+    endif
+    assign savings = 0
+    assign savings_pct = 0
+    if offer_compare > offer_price
+      assign savings = offer_compare | minus: offer_price
+      assign savings_pct = savings | times: 100 | divided_by: offer_compare
+    endif
+    assign per_unit = offer_price | times: 1.0 | divided_by: units | round
+    assign vs_singles = 0
+    if units > 1 and single_unit_price > 0
+      assign vs_singles = single_unit_price | times: units | minus: offer_price
+    endif
+
+    assign offer_available = offer_variant.available
+    if offer_variant.inventory_management == 'shopify' and offer_variant.inventory_policy == 'deny' and offer_variant.inventory_quantity < qty
+      assign offer_available = false
+    endif
+
+    assign price_str = offer_price | money
+    assign compare_str = ''
+    if offer_compare > 0
+      assign compare_str = offer_compare | money
+    endif
+    assign per_unit_str = per_unit | money
+    assign savings_str = savings | money
+    assign vs_singles_str = vs_singles | money
+
+    assign badge_str = ''
+    if savings_pct > 0
+      assign badge_str = section.settings.save_badge_text | replace: '[percent]', savings_pct
+    endif
+    assign save_amount_str = ''
+    if savings > 0
+      assign save_amount_str = section.settings.save_amount_text | replace: '[amount]', savings_str
+    endif
+
+    assign deal_str = ''
+    assign summary_str = ''
+    if units > 1
+      assign deal_str = section.settings.per_unit_text | replace: '[price]', per_unit_str | replace: '[unit]', unit_singular
+      if vs_singles > 0
+        assign vs_text = section.settings.vs_singles_text | replace: '[amount]', vs_singles_str | replace: '[count]', units
+        assign deal_str = deal_str | append: ' · ' | append: vs_text
+      endif
+      assign summary_str = section.settings.summary_text | replace: '[count]', units | replace: '[units]', unit_plural | replace: '[price]', per_unit_str
+    endif
+
+    assign sticky_note = badge_str
+    if units > 1
+      assign each_str = section.settings.each_text | replace: '[price]', per_unit_str
+      if sticky_note != blank
+        assign sticky_note = sticky_note | append: ' · ' | append: each_str
+      else
+        assign sticky_note = each_str
+      endif
+    endif
+
+    assign sticky_label = block.settings.sticky_label
+    if sticky_label == blank
+      assign sticky_label = block.settings.title
+    endif
+
+    assign media_id = ''
+    if offer_variant.featured_media and block.settings.bundle_product == blank
+      assign media_id = offer_variant.featured_media.id
+    endif
+
+    assign is_selected = false
+    if this_index == selected_offer
+      assign is_selected = true
+      assign sel_quantity = qty
+      assign sel_price = offer_price
+      assign sel_compare = offer_compare
+      assign sel_available = offer_available
+      assign sel_badge = badge_str
+      assign sel_summary = summary_str
+      assign sel_sticky_note = sticky_note
+    endif
+    assign input_id = 'Bundle-' | append: section.id | append: '-' | append: this_index
+  -%}
+  {%- capture card -%}
+    <label
+      class="sr-bundle-card{% unless offer_available %} sr-bundle-card--unavailable{% endunless %}"
+      for="{{ input_id }}"
+      {{ block.shopify_attributes }}
+    >
+      <input
+        class="sr-bundle-card__input"
+        type="radio"
+        id="{{ input_id }}"
+        name="id"
+        value="{{ offer_variant.id }}"
+        data-sr-offer="{{ this_index }}"
+        data-quantity="{{ qty }}"
+        data-price="{{ price_str | escape }}"
+        data-compare="{{ compare_str | escape }}"
+        data-badge="{{ badge_str | escape }}"
+        data-summary="{{ summary_str | escape }}"
+        data-sticky-note="{{ sticky_note | escape }}"
+        data-available="{{ offer_available }}"
+        data-media-id="{{ media_id }}"
+        {% if is_selected %}
+          checked
+        {% endif %}
+      >
+      <span class="sr-bundle-card__radio" aria-hidden="true"></span>
+      <span class="sr-bundle-card__body">
+        <span class="sr-bundle-card__title">{{ block.settings.title | escape }}</span>
+        {%- if block.settings.description != blank -%}
+          <span class="sr-bundle-card__desc">{{ block.settings.description | escape }}</span>
+        {%- endif -%}
+        {%- if deal_str != blank -%}
+          <span class="sr-bundle-card__deal">{{ deal_str }}</span>
+        {%- endif -%}
+        {%- unless offer_available -%}
+          <span class="sr-bundle-card__soldout">{{ 'products.product.sold_out' | t }}</span>
+        {%- endunless -%}
+      </span>
+      <span class="sr-bundle-card__prices">
+        <span class="sr-bundle-card__price">{{ price_str }}</span>
+        {%- if compare_str != blank -%}
+          <s class="sr-bundle-card__compare">
+            <span class="visually-hidden">{{ 'products.product.price.regular_price' | t }}</span>
+            {{- compare_str -}}
+          </s>
+        {%- endif -%}
+        {%- if save_amount_str != blank -%}
+          <span class="sr-bundle-card__save">{{ save_amount_str }}</span>
+        {%- endif -%}
+      </span>
+      {%- if block.settings.badge != blank -%}
+        <span class="sr-bundle-card__badge">{{ block.settings.badge | escape }}</span>
+      {%- endif -%}
+    </label>
+  {%- endcapture -%}
+  {%- capture sticky_option -%}
+    <button
+      type="button"
+      class="sr-sticky__option"
+      data-sr-sticky-option="{{ this_index }}"
+      aria-pressed="{{ is_selected }}"
+    >
+      {{ sticky_label | escape }}
+    </button>
+  {%- endcapture -%}
+  {%- assign cards_html = cards_html | append: card -%}
+  {%- assign sticky_html = sticky_html | append: sticky_option -%}
+{%- endfor -%}
+
+{%- liquid
+  if valid_offer_count == 0 and current_variant.inventory_management == 'shopify' and current_variant.inventory_policy == 'deny' and current_variant.inventory_quantity < 1
+    assign sel_available = false
+  endif
+  if valid_offer_count == 0 and sel_compare > sel_price
+    assign fallback_pct = sel_compare | minus: sel_price | times: 100 | divided_by: sel_compare
+    assign sel_badge = section.settings.save_badge_text | replace: '[percent]', fallback_pct
+    assign sel_sticky_note = sel_badge
+  endif
+  assign media_count = product.media.size
+  assign reviews_anchor = '#' | append: section.settings.reviews_anchor
+-%}
+
+<product-component view-event-payload="{{ product | standard_event_data: 'view', context: 'page' | escape }}">
+  <section
+    id="MainProduct-{{ section.id }}"
+    class="sr-section sr-pdp"
+    data-section="{{ section.id }}"
+    data-sr-product
+    data-product-id="{{ product.id }}"
+    style="--sr-pad-top: {{ section.settings.padding_top }}px; --sr-pad-bottom: {{ section.settings.padding_bottom }}px; --sr-pad-top-mobile: {{ section.settings.padding_top | times: 0.5 | round }}px; --sr-pad-bottom-mobile: {{ section.settings.padding_bottom | times: 0.6 | round }}px;"
+  >
+    <div class="page-width">
+      {%- if section.settings.show_breadcrumbs -%}
+        <nav class="sr-breadcrumbs" aria-label="{{ 'sunrise.breadcrumb' | t }}">
+          <ol role="list">
+            <li><a href="{{ routes.root_url }}">{{ 'sunrise.home' | t }}</a></li>
+            {%- if collection -%}
+              <li><a href="{{ collection.url }}">{{ collection.title | escape }}</a></li>
+            {%- endif -%}
+            <li aria-current="page">{{ product.title | escape }}</li>
+          </ol>
+        </nav>
+      {%- endif -%}
+
+      <div class="sr-pdp__grid">
+        {%- comment -%} ---------- Gallery ---------- {%- endcomment -%}
+        <div class="sr-pdp__media">
+          <div
+            class="sr-gallery sr-gallery--{{ section.settings.media_fit }}"
+            data-sr-gallery
+            role="region"
+            aria-label="{{ 'sunrise.gallery_label' | t }}"
+          >
+            <div class="sr-gallery__viewport">
+              <ul class="sr-gallery__track" data-sr-gallery-track role="list">
+                {%- for media in product.media -%}
+                  <li
+                    class="sr-gallery__slide"
+                    id="Slide-{{ section.id }}-{{ media.id }}"
+                    data-sr-slide
+                    data-media-id="{{ media.id }}"
+                    {% unless forloop.first %}
+                      aria-hidden="true"
+                    {% endunless %}
+                  >
+                    {%- case media.media_type -%}
+                      {%- when 'image' -%}
+                        {%- liquid
+                          if forloop.first
+                            assign loading = 'eager'
+                            assign priority = 'high'
+                          else
+                            assign loading = 'lazy'
+                            assign priority = 'auto'
+                          endif
+                        -%}
+                        {{
+                          media
+                          | image_url: width: 1600
+                          | image_tag:
+                            loading: loading,
+                            fetchpriority: priority,
+                            widths: '400, 600, 800, 1000, 1200, 1400, 1600',
+                            sizes: '(min-width: 1200px) 560px, (min-width: 990px) calc(50vw - 8rem), calc(100vw - 3rem)',
+                            alt: media.alt
+                        }}
+                      {%- when 'video' -%}
+                        {{ media | video_tag: controls: true, playsinline: true, preload: 'metadata', image_size: '1200x' }}
+                      {%- when 'external_video' -%}
+                        {{ media | external_video_tag: loading: 'lazy' }}
+                      {%- else -%}
+                        {{
+                          media.preview_image
+                          | image_url: width: 1600
+                          | image_tag: loading: 'lazy', widths: '600, 1000, 1600', alt: media.alt
+                        }}
+                    {%- endcase -%}
+                  </li>
+                {%- else -%}
+                  <li class="sr-gallery__slide" data-sr-slide>
+                    {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+                  </li>
+                {%- endfor -%}
+              </ul>
+              {%- if media_count > 1 -%}
+                <span class="sr-gallery__counter" aria-hidden="true" data-sr-gallery-counter>
+                  {{- 'sunrise.media_count' | t: index: 1, count: media_count -}}
+                </span>
+              {%- endif -%}
+            </div>
+
+            {%- if media_count > 1 -%}
+              <ul class="sr-gallery__thumbs" role="list">
+                {%- for media in product.media -%}
+                  <li class="sr-gallery__thumb-item">
+                    <button
+                      type="button"
+                      class="sr-gallery__thumb"
+                      data-sr-thumb="{{ forloop.index0 }}"
+                      aria-controls="Slide-{{ section.id }}-{{ media.id }}"
+                      aria-label="{{ 'sunrise.show_media' | t: index: forloop.index, count: media_count }}{% if media.alt != blank %}: {{ media.alt | escape }}{% endif %}"
+                      {% if forloop.first %}
+                        aria-current="true"
+                      {% endif %}
+                    >
+                      {{
+                        media.preview_image
+                        | image_url: width: 240
+                        | image_tag: loading: 'lazy', widths: '120, 180, 240', sizes: '120px', alt: ''
+                      }}
+                    </button>
+                    {%- if section.settings.show_thumbnail_captions and media.alt != blank -%}
+                      <span class="sr-gallery__caption" aria-hidden="true">{{ media.alt | escape }}</span>
+                    {%- endif -%}
+                  </li>
+                {%- endfor -%}
+              </ul>
+            {%- endif -%}
+          </div>
+        </div>
+
+        {%- comment -%} ---------- Purchase panel ---------- {%- endcomment -%}
+        <div class="sr-pdp__info">
+          {%- if section.settings.eyebrow != blank -%}
+            <p class="sr-eyebrow">{{ section.settings.eyebrow | escape }}</p>
+          {%- endif -%}
+          <h1 class="sr-title sr-pdp__title">{{ product.title | escape }}</h1>
+
+          {%- if section.settings.show_rating -%}
+            <div class="sr-pdp__rating">
+              {%- render 'sunrise-rating', product: product, link: reviews_anchor -%}
+            </div>
+          {%- endif -%}
+
+          <div class="sr-pdp__intro sr-body sr-rte">
+            {%- if section.settings.short_description != blank -%}
+              {{ section.settings.short_description }}
+            {%- elsif product.description != blank -%}
+              <p>{{ product.description | strip_html | truncatewords: 32 }}</p>
+            {%- endif -%}
+          </div>
+
+          <div class="sr-pdp__price-block">
+            <div class="sr-price">
+              <span class="visually-hidden">{{ 'products.product.price.sale_price' | t }}</span>
+              <span class="sr-price__current sr-pdp__price" data-sr-price-current>{{ sel_price | money }}</span>
+              <s class="sr-price__compare" data-sr-price-compare {% if sel_compare <= sel_price %}hidden{% endif %}>
+                <span class="visually-hidden">{{ 'products.product.price.regular_price' | t }}</span>
+                <span data-sr-price-compare-value>{%- if sel_compare > sel_price -%}{{ sel_compare | money }}{%- endif -%}</span>
+              </s>
+              <span class="sr-badge" data-sr-price-badge {% if sel_badge == blank %}hidden{% endif %}>
+                {{- sel_badge -}}
+              </span>
+            </div>
+            <p class="sr-pdp__price-note sr-caption">
+              <span data-sr-summary>{{ sel_summary }}</span>
+              {%- if cart.duties_included and cart.taxes_included -%}
+                <span>{{ 'products.product.duties_and_taxes_included' | t }}</span>
+              {%- elsif cart.taxes_included -%}
+                <span>{{ 'products.product.taxes_included' | t }}</span>
+              {%- elsif cart.duties_included -%}
+                <span>{{ 'products.product.duties_included' | t }}</span>
+              {%- endif -%}
+              {%- if shop.shipping_policy.body != blank -%}
+                <span>{{ 'products.product.shipping_policy_html' | t: link: shop.shipping_policy.url }}</span>
+              {%- endif -%}
+            </p>
+          </div>
+
+          <product-form class="product-form sr-pdp__form" data-section-id="{{ section.id }}" data-hide-errors="false">
+            {%- form 'product', product, id: product_form_id, class: 'sr-pdp__form-el', novalidate: 'novalidate', data-type: 'add-to-cart-form' -%}
+              <input type="hidden" name="quantity" value="{{ sel_quantity }}" data-sr-quantity>
+
+              {%- if valid_offer_count > 0 -%}
+                <fieldset class="sr-bundles" data-sr-bundles>
+                  <legend class="sr-bundles__legend">{{ bundle_heading | escape }}</legend>
+                  {{ cards_html }}
+                </fieldset>
+              {%- elsif product.has_only_default_variant -%}
+                <input type="hidden" name="id" value="{{ current_variant.id }}">
+              {%- else -%}
+                <div class="sr-variant-select">
+                  <label class="sr-bundles__legend" for="Variant-{{ section.id }}">{{ 'sunrise.options' | t }}</label>
+                  <select id="Variant-{{ section.id }}" name="id" class="sr-select" data-sr-variant-select>
+                    {%- for variant in product.variants -%}
+                      {%- liquid
+                        assign v_compare = ''
+                        assign v_badge = ''
+                        if variant.compare_at_price > variant.price
+                          assign v_compare = variant.compare_at_price | money
+                          assign v_pct = variant.compare_at_price | minus: variant.price | times: 100 | divided_by: variant.compare_at_price
+                          assign v_badge = section.settings.save_badge_text | replace: '[percent]', v_pct
+                        endif
+                      -%}
+                      <option
+                        value="{{ variant.id }}"
+                        data-quantity="1"
+                        data-price="{{ variant.price | money | escape }}"
+                        data-compare="{{ v_compare | escape }}"
+                        data-badge="{{ v_badge | escape }}"
+                        data-summary=""
+                        data-sticky-note="{{ v_badge | escape }}"
+                        data-available="{{ variant.available }}"
+                        data-media-id="{{ variant.featured_media.id }}"
+                        {% if variant.id == current_variant.id %}
+                          selected
+                        {% endif %}
+                      >
+                        {{ variant.title | escape }} – {{ variant.price | money }}
+                        {%- unless variant.available %} – {{ 'products.product.sold_out' | t }}{% endunless -%}
+                      </option>
+                    {%- endfor -%}
+                  </select>
+                </div>
+              {%- endif -%}
+
+              {%- if request.design_mode and unresolved_titles != blank -%}
+                <p class="sr-editor-note">
+                  No variant on this product matches these bundle offers, so they are hidden:
+                  {{ unresolved_titles | escape }}. Set each block's "Variant option value" to an existing option
+                  value (for example "2 Clocks"), or choose a bundle product.
+                </p>
+              {%- endif -%}
+
+              <div class="product-form__error-message-wrapper sr-form-error" role="alert" hidden>
+                <span class="product-form__error-message"></span>
+              </div>
+
+              <button
+                id="ProductSubmitButton-{{ section.id }}"
+                type="submit"
+                name="add"
+                class="sr-btn sr-btn--primary sr-btn--block sr-atc"
+                data-sr-atc
+                {% unless sel_available %}
+                  disabled
+                {% endunless %}
+              >
+                <span class="sr-atc__label">
+                  <span data-sr-atc-text>
+                    {%- if sel_available -%}
+                      {{- 'products.product.add_to_cart' | t -}}
+                    {%- else -%}
+                      {{- 'products.product.sold_out' | t -}}
+                    {%- endif -%}
+                  </span>
+                  <span data-sr-atc-price-wrap {% unless sel_available %}hidden{% endunless %}>
+                    &mdash; <span data-sr-price-current>{{ sel_price | money }}</span></span
+                  >
+                </span>
+                <span class="sr-atc__state sr-atc__state--adding" aria-hidden="true">{{ 'sunrise.adding' | t }}</span>
+                <span class="sr-atc__state sr-atc__state--added" aria-hidden="true">
+                  {{- 'sunrise.added' | t }}
+                  {% render 'sunrise-icon', icon: 'check' -%}
+                </span>
+                {%- render 'loading-spinner' -%}
+              </button>
+              <p class="visually-hidden" role="status" data-sr-atc-status></p>
+            {%- endform -%}
+          </product-form>
+
+          {%- if section.settings.show_payment_icons and shop.enabled_payment_types.size > 0 -%}
+            <ul class="sr-payment" role="list" aria-label="{{ 'sunrise.payment_methods' | t }}">
+              {%- for type in shop.enabled_payment_types -%}
+                <li class="sr-payment__item">{{ type | payment_type_svg_tag: class: 'icon icon--full-color' }}</li>
+              {%- endfor -%}
+            </ul>
+          {%- endif -%}
+
+          {%- if section.settings.dispatch_text != blank and section.settings.delivery_text != blank -%}
+            <ol class="sr-delivery sr-card" role="list" aria-label="{{ 'sunrise.delivery_timeline' | t }}">
+              <li class="sr-delivery__step">
+                <span class="sr-delivery__icon">{% render 'sunrise-icon', icon: 'bag' %}</span>
+                <span class="sr-delivery__label">{{ 'sunrise.order_placed' | t }}</span>
+                <span class="sr-delivery__value">{{ 'sunrise.today' | t }}</span>
+              </li>
+              <li class="sr-delivery__step">
+                <span class="sr-delivery__icon">{% render 'sunrise-icon', icon: 'box' %}</span>
+                <span class="sr-delivery__label">{{ 'sunrise.dispatched' | t }}</span>
+                <span class="sr-delivery__value">{{ section.settings.dispatch_text | escape }}</span>
+              </li>
+              <li class="sr-delivery__step">
+                <span class="sr-delivery__icon">{% render 'sunrise-icon', icon: 'home' %}</span>
+                <span class="sr-delivery__label">{{ 'sunrise.delivered' | t }}</span>
+                <span class="sr-delivery__value">{{ section.settings.delivery_text | escape }}</span>
+              </li>
+            </ol>
+          {%- endif -%}
+
+          {%- assign trust_blocks = section.blocks | where: 'type', 'trust' -%}
+          {%- if trust_blocks.size > 0 -%}
+            <ul class="sr-trust sr-pdp__trust" role="list">
+              {%- for block in trust_blocks -%}
+                <li class="sr-trust__item" {{ block.shopify_attributes }}>
+                  {% render 'sunrise-icon', icon: block.settings.icon %}
+                  <span>
+                    <span class="sr-trust__title">
+                      {%- if block.settings.link != blank -%}
+                        <a href="{{ block.settings.link }}">{{ block.settings.title | escape }}</a>
+                      {%- else -%}
+                        {{- block.settings.title | escape -}}
+                      {%- endif -%}
+                    </span>
+                    {%- if block.settings.text != blank -%}
+                      <span class="sr-trust__text">{{ block.settings.text | escape }}</span>
+                    {%- endif -%}
+                  </span>
+                </li>
+              {%- endfor -%}
+            </ul>
+          {%- endif -%}
+
+          {%- for block in section.blocks -%}
+            {%- if block.type == '@app' -%}
+              <div class="sr-pdp__app">{% render block %}</div>
+            {%- endif -%}
+          {%- endfor -%}
+        </div>
+      </div>
+    </div>
+
+    {%- if section.settings.enable_sticky_atc -%}
+      <div class="sr-sticky" data-sr-sticky aria-hidden="true" inert>
+        <div class="sr-sticky__inner">
+          {%- if valid_offer_count > 1 -%}
+            <div
+              class="sr-sticky__options"
+              role="group"
+              aria-label="{{ bundle_heading | escape }}"
+            >
+              {{ sticky_html }}
+            </div>
+          {%- endif -%}
+          <div class="sr-sticky__row">
+            <div class="sr-sticky__price">
+              <span class="sr-sticky__current">
+                <span class="visually-hidden">{{ 'products.product.price.sale_price' | t }}</span>
+                <span data-sr-price-current>{{ sel_price | money }}</span>
+              </span>
+              <s class="sr-sticky__compare" data-sr-price-compare {% if sel_compare <= sel_price %}hidden{% endif %}>
+                <span class="visually-hidden">{{ 'products.product.price.regular_price' | t }}</span>
+                <span data-sr-price-compare-value>{%- if sel_compare > sel_price -%}{{ sel_compare | money }}{%- endif -%}</span>
+              </s>
+              <span class="sr-sticky__note" data-sr-sticky-note>{{ sel_sticky_note }}</span>
+            </div>
+            <button
+              type="submit"
+              form="{{ product_form_id }}"
+              class="sr-btn sr-btn--primary sr-sticky__atc"
+              data-sr-sticky-atc
+              {% unless sel_available %}
+                disabled
+              {% endunless %}
+            >
+              <span data-sr-sticky-atc-text>
+                {%- if sel_available -%}
+                  {{- 'products.product.add_to_cart' | t -}}
+                {%- else -%}
+                  {{- 'products.product.sold_out' | t -}}
+                {%- endif -%}
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    {%- endif -%}
+
+    <script type="application/json" data-sr-strings>
+      {
+        "addToCart": {{ 'products.product.add_to_cart' | t | json }},
+        "soldOut": {{ 'products.product.sold_out' | t | json }},
+        "added": {{ 'sunrise.added' | t | json }},
+        "mediaCount": {{ 'sunrise.media_count' | t: index: '[index]', count: '[count]' | json }}
+      }
+    </script>
+  </section>
+
+  <script type="application/ld+json">
+    {{ product | structured_data }}
+  </script>
+</product-component>
+
+{% schema %}
+{
+  "name": "Sunrise product",
+  "tag": "div",
+  "class": "section sr-main-product",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "blocks": [
+    {
+      "type": "bundle",
+      "name": "Bundle offer",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Each offer adds a real variant to the cart. Prices, compare-at prices and savings come from that variant in Shopify admin."
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Buy 1"
+        },
+        {
+          "type": "text",
+          "id": "description",
+          "label": "Description",
+          "default": "1 Sunrise Alarm Clock — perfect for your bedside."
+        },
+        {
+          "type": "text",
+          "id": "option_value",
+          "label": "Variant option value",
+          "info": "Option value (or full variant title) of the variant to sell, e.g. \"1 Clock\" or \"2 Clocks\". Leave blank to use the default variant."
+        },
+        {
+          "type": "product",
+          "id": "bundle_product",
+          "label": "Or: separate bundle product",
+          "info": "Optional. Use a bundle product (for example one created with the Shopify Bundles app) instead of a variant of this product."
+        },
+        {
+          "type": "range",
+          "id": "quantity",
+          "label": "Cart quantity",
+          "info": "How many of the selected variant are added. Keep 1 when the variant itself is the bundle.",
+          "min": 1,
+          "max": 10,
+          "step": 1,
+          "default": 1
+        },
+        {
+          "type": "range",
+          "id": "units",
+          "label": "Clocks in this offer",
+          "info": "Used for the per-clock price and the saving versus buying singles.",
+          "min": 1,
+          "max": 10,
+          "step": 1,
+          "default": 1
+        },
+        {
+          "type": "text",
+          "id": "badge",
+          "label": "Badge",
+          "info": "For example \"Most popular\". Leave blank for none."
+        },
+        {
+          "type": "text",
+          "id": "sticky_label",
+          "label": "Label in mobile sticky bar",
+          "info": "Defaults to the title."
+        },
+        {
+          "type": "checkbox",
+          "id": "default_selected",
+          "label": "Selected by default",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "trust",
+      "name": "Trust item",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "Only add claims that are true for your store."
+        },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icon",
+          "options": [
+            { "value": "lock", "label": "Lock" },
+            { "value": "truck", "label": "Delivery truck" },
+            { "value": "return", "label": "Return arrow" },
+            { "value": "mail", "label": "Mail" },
+            { "value": "shield", "label": "Shield" }
+          ],
+          "default": "lock"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "Title",
+          "default": "Secure checkout"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "Text",
+          "default": "Encrypted payments"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "Link"
+        }
+      ]
+    },
+    {
+      "type": "@app"
+    }
+  ],
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_breadcrumbs",
+      "label": "Show breadcrumbs",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow",
+      "default": "Wake up gently"
+    },
+    {
+      "type": "richtext",
+      "id": "short_description",
+      "label": "Short description",
+      "info": "Shown under the title. Leave blank to use the start of the product description."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_rating",
+      "label": "Show star rating",
+      "info": "Appears only when a review app has added ratings to this product.",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "reviews_anchor",
+      "label": "Rating links to section ID",
+      "default": "Reviews"
+    },
+    {
+      "type": "header",
+      "content": "Gallery"
+    },
+    {
+      "type": "select",
+      "id": "media_fit",
+      "label": "Image fit",
+      "options": [
+        { "value": "contain", "label": "Contain" },
+        { "value": "cover", "label": "Cover" }
+      ],
+      "default": "cover"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_thumbnail_captions",
+      "label": "Show image alt text under thumbnails",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "Bundle selector"
+    },
+    {
+      "type": "text",
+      "id": "bundle_heading",
+      "label": "Heading",
+      "default": "Choose your bundle"
+    },
+    {
+      "type": "text",
+      "id": "unit_singular",
+      "label": "Unit name (singular)",
+      "default": "clock"
+    },
+    {
+      "type": "text",
+      "id": "unit_plural",
+      "label": "Unit name (plural)",
+      "default": "clocks"
+    },
+    {
+      "type": "text",
+      "id": "save_badge_text",
+      "label": "Saving badge",
+      "info": "[percent] is replaced with the saving against the compare-at price.",
+      "default": "Save [percent]%"
+    },
+    {
+      "type": "text",
+      "id": "save_amount_text",
+      "label": "Saving amount",
+      "info": "[amount] is replaced with compare-at price minus price.",
+      "default": "Save [amount]"
+    },
+    {
+      "type": "text",
+      "id": "per_unit_text",
+      "label": "Per-unit price",
+      "default": "[price] per [unit]"
+    },
+    {
+      "type": "text",
+      "id": "vs_singles_text",
+      "label": "Saving versus singles",
+      "info": "[amount] is compared with buying the 1-clock offer [count] times.",
+      "default": "[amount] less than [count] singles"
+    },
+    {
+      "type": "text",
+      "id": "summary_text",
+      "label": "Price summary",
+      "default": "For [count] [units] — [price] each."
+    },
+    {
+      "type": "text",
+      "id": "each_text",
+      "label": "Sticky bar per-unit text",
+      "default": "[price] each"
+    },
+    {
+      "type": "header",
+      "content": "Payment and delivery"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_payment_icons",
+      "label": "Show payment icons",
+      "info": "Icons come from the payment methods enabled in your Shopify payments settings.",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "dispatch_text",
+      "label": "Dispatch time",
+      "info": "For example \"1–2 business days\". The delivery timeline shows only when both fields are filled in."
+    },
+    {
+      "type": "text",
+      "id": "delivery_text",
+      "label": "Delivery estimate",
+      "info": "For example \"3–7 business days\". Match your shipping settings."
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_sticky_atc",
+      "label": "Show sticky add to cart on mobile",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.all.padding.section_padding_heading"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_top",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "t:sections.all.padding.padding_bottom",
+      "default": 80
+    }
+  ]
+}
+{% endschema %}

@@ -1466,5 +1466,67 @@
         "label": "t:settings_schema.customer_accounts.settings.customer_account_menu.label"
       }
     ]
+  },
+  {
+    "name": "Sunrise design",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "Design tokens used by the Sunrise sections (hero, bundle selector, reviews, FAQ, etc.) and by the header and footer styling."
+      },
+      {
+        "type": "checkbox",
+        "id": "sunrise_use_manrope",
+        "label": "Use bundled Manrope typeface",
+        "info": "Self-hosted with the theme. Turn off to use the fonts chosen under Typography instead.",
+        "default": true
+      },
+      {
+        "type": "color",
+        "id": "sunrise_ink",
+        "label": "Ink (headings and primary buttons)",
+        "default": "#1B1916"
+      },
+      {
+        "type": "color",
+        "id": "sunrise_muted",
+        "label": "Muted text",
+        "default": "#5C564E"
+      },
+      {
+        "type": "color",
+        "id": "sunrise_accent",
+        "label": "Sunrise accent",
+        "default": "#B84E0C"
+      },
+      {
+        "type": "color",
+        "id": "sunrise_accent_bright",
+        "label": "Selected state accent",
+        "default": "#D9661C"
+      },
+      {
+        "type": "color",
+        "id": "sunrise_warm",
+        "label": "Warm background",
+        "default": "#FAF7F2"
+      },
+      {
+        "type": "color",
+        "id": "sunrise_line",
+        "label": "Borders",
+        "default": "#E7E1D8"
+      },
+      {
+        "type": "range",
+        "id": "sunrise_radius",
+        "label": "Card corner radius",
+        "min": 0,
+        "max": 28,
+        "step": 2,
+        "unit": "px",
+        "default": 16
+      }
+    ]
   }
 ]

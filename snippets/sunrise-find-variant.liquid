@@ -1,0 +1,38 @@
+{% comment %}
+  Outputs the ID of the product variant whose option value (or full variant
+  title) matches `value`, case-insensitively. Outputs nothing when no variant
+  matches. When `value` is blank, outputs the selected-or-first-available variant.
+
+  Usage:
+  {% capture variant_id %}{% render 'sunrise-find-variant', product: product, value: '2 Clocks' %}{% endcapture %}
+
+  Accepts:
+  - product: {Object} product
+  - value: {String} option value or variant title to match, e.g. "2 Clocks"
+{% endcomment %}
+{%- liquid
+  assign needle = value | strip | downcase
+  if needle == blank
+    echo product.selected_or_first_available_variant.id
+  else
+    for variant in product.variants
+      assign matched = false
+      assign title = variant.title | strip | downcase
+      if title == needle
+        assign matched = true
+      else
+        for option_value in variant.options
+          assign option_value_normalized = option_value | strip | downcase
+          if option_value_normalized == needle
+            assign matched = true
+            break
+          endif
+        endfor
+      endif
+      if matched
+        echo variant.id
+        break
+      endif
+    endfor
+  endif
+-%}
