@@ -260,27 +260,32 @@
 
     /* ---------- Sticky bar ---------- */
 
+    // Position checks on scroll rather than IntersectionObserver alone: an observer only
+    // fires on state changes, so a jump from below the button to past it (e.g. an anchor
+    // link) would never reveal the bar.
     initSticky() {
-      if (!this.sticky || !this.atc || !('IntersectionObserver' in window)) return;
-      this.pastButton = false;
-      this.footerVisible = false;
-
-      new IntersectionObserver(([entry]) => {
-        this.pastButton = !entry.isIntersecting && entry.boundingClientRect.top < 0;
-        this.updateSticky();
-      }).observe(this.atc);
-
-      const footer = document.querySelector('.footer, footer');
-      if (footer) {
-        new IntersectionObserver(([entry]) => {
-          this.footerVisible = entry.isIntersecting;
+      if (!this.sticky || !this.atc) return;
+      this.footer = document.querySelector('.footer, footer');
+      let ticking = false;
+      const onScroll = () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          ticking = false;
           this.updateSticky();
-        }).observe(footer);
-      }
+        });
+      };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll, { passive: true });
+      this.updateSticky();
     }
 
     updateSticky() {
-      const visible = this.pastButton && !this.footerVisible;
+      const pastButton = this.atc.getBoundingClientRect().bottom < 0;
+      const footerVisible = this.footer ? this.footer.getBoundingClientRect().top < window.innerHeight : false;
+      const visible = pastButton && !footerVisible;
+      if (visible === this.stickyVisible) return;
+      this.stickyVisible = visible;
       this.sticky.classList.toggle('is-visible', visible);
       this.sticky.setAttribute('aria-hidden', String(!visible));
       this.sticky.toggleAttribute('inert', !visible);

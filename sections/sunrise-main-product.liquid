@@ -300,7 +300,7 @@
     assign sel_sticky_note = sel_badge
   endif
   assign media_count = product.media.size
-  assign reviews_anchor = '#' | append: section.settings.reviews_anchor
+  assign reviews_anchor = section.settings.reviews_anchor | default: 'reviews' | handleize | prepend: '#'
 -%}
 
 <product-component view-event-payload="{{ product | standard_event_data: 'view', context: 'page' | escape }}">

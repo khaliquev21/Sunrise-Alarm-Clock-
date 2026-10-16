@@ -284,6 +284,7 @@ body {
 }
 
 .sr-media {
+  display: block;
   position: relative;
   overflow: hidden;
   border-radius: var(--sr-radius);
